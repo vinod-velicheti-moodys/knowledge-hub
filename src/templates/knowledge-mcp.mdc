@@ -1,0 +1,34 @@
+---
+description: Knowledge MCP tool usage guide -- when to recall, record, and manage institutional memory
+globs: "**/*"
+alwaysApply: true
+---
+
+# Knowledge MCP Tool Usage
+
+When the tiq-knowledge MCP server is available, use these tools to leverage institutional memory.
+
+## Before Starting Any Task
+- Call `task_start` with the JIRA ticket ID and summary
+- Call `task_conflicts` to check if anyone else is working on overlapping files
+- Call `recall_events` and `get_wisdom` for the area you're about to modify
+- Call `get_pitfalls` for the area to avoid known mistakes
+
+## During Development
+- Call `task_decide` for every non-trivial architectural or implementation decision
+- Call `task_attempt` when something fails, with the reason
+- Call `recall_for_component` before modifying any component to see its history
+- Call `get_standard` to verify your changes follow team conventions
+
+## Before Committing
+- Call `task_find` to record any reusable patterns you discovered
+
+## After Task Completion
+- Call `task_end` to promote session knowledge to shared memory
+
+## When You Notice Bad Data
+- Call `memory_correct` to fix incorrect entries (wrong tags, misleading summaries)
+- Call `memory_delete` to remove entries that are no longer relevant
+
+## Diagnostics
+- Call `memory_status` to check DB connection, pool stats, and memory layer counts

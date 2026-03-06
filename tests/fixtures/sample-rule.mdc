@@ -1,0 +1,15 @@
+---
+description: Sample rule for testing
+globs: "**/*.vue"
+alwaysApply: false
+---
+
+# Sample Rule
+
+This is a sample rule for unit testing the rules parser.
+
+## Section A
+Content for section A.
+
+## Section B
+Content for section B.

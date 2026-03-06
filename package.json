@@ -1,0 +1,48 @@
+{
+  "name": "@treatyiq/knowledge-mcp",
+  "version": "1.0.0",
+  "description": "MCP server with four-layer memory system for institutional codebase knowledge",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "knowledge-mcp": "./dist/index.js",
+    "knowledge-mcp-seed": "./dist/seeders/seed.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "seed": "tsx src/seeders/seed.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "pg": "^8.13.1",
+    "pgvector": "^0.2.0",
+    "zod": "^3.23.8",
+    "glob": "^11.0.0",
+    "simple-git": "^3.27.0",
+    "yaml": "^2.6.1",
+    "uuid": "^11.0.3"
+  },
+  "optionalDependencies": {
+    "@vue/compiler-sfc": "^2.7.16",
+    "ts-morph": "^24.0.0",
+    "@huggingface/transformers": "^3.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "@types/uuid": "^10.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}
