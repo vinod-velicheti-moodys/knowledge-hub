@@ -18,13 +18,33 @@ export function createTaskTools(
 ) {
   return {
     task_start: async (args: {
-      taskId: string;
+      taskId?: string;
       summary: string;
       ticket?: { id: string; summary: string; acceptanceCriteria: string[] };
     }): Promise<ToolResult> => {
+      if (!args.summary || typeof args.summary !== "string" || args.summary.trim() === "") {
+        throw new Error("summary is required and must be a non-empty string");
+      }
+
+      // Generate taskId intelligently if not provided
+      let finalTaskId = args.taskId?.trim();
+      
+      if (!finalTaskId) {
+        // Priority 1: Use ticket ID if available
+        if (args.ticket?.id) {
+          finalTaskId = args.ticket.id;
+        } 
+        // Priority 2: Generate from summary (first 3 words + timestamp)
+        else {
+          const words = args.summary.trim().split(/\s+/).slice(0, 3).join("-").toLowerCase();
+          const timestamp = Date.now().toString().slice(-6);
+          finalTaskId = `task-${words}-${timestamp}`;
+        }
+      }
+      
       const session = await shortTerm.startSession(
-        args.taskId,
-        args.summary,
+        finalTaskId,
+        args.summary.trim(),
         args.ticket
       );
       return text(
@@ -106,11 +126,11 @@ export function createTaskTools(
 export const TASK_TOOL_DEFINITIONS = [
   {
     name: "task_start",
-    description: "Start a new task session. Records the task context for the current developer.",
+    description: "Start a new task session. Records the task context for the current developer. If taskId is not provided, it will be auto-generated from the summary.",
     inputSchema: {
       type: "object" as const,
       properties: {
-        taskId: { type: "string", description: "JIRA ticket ID or task identifier (e.g. TIM-10654)" },
+        taskId: { type: "string", description: "Optional: JIRA ticket ID or task identifier (e.g. TIM-10654). Auto-generated if not provided." },
         summary: { type: "string", description: "Brief description of the task" },
         ticket: {
           type: "object",
@@ -122,7 +142,7 @@ export const TASK_TOOL_DEFINITIONS = [
           },
         },
       },
-      required: ["taskId", "summary"],
+      required: ["summary"],
     },
   },
   {
