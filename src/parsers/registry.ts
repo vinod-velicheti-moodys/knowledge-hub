@@ -7,7 +7,10 @@ import type {
   RouteResult,
   ParserResult,
 } from "./types.js";
-import type { RepoConfig } from "../config.js";
+export interface ParserDef {
+  id: string;
+  options?: Record<string, unknown>;
+}
 
 const BUILTIN_PARSER_MAP: Record<string, string> = {
   "vue2-component": "./builtin/vue2-component-parser.js",
@@ -19,13 +22,13 @@ const BUILTIN_PARSER_MAP: Record<string, string> = {
 export class ParserRegistry {
   private plugins = new Map<string, ParserPlugin>();
 
-  async init(repoConfig: RepoConfig | null, projectRoot: string): Promise<void> {
-    if (!repoConfig?.parsers?.length) {
-      console.error("[parsers] No parsers configured in .knowledge-mcp.json");
+  async init(parsers: ParserDef[], projectRoot: string): Promise<void> {
+    if (!parsers.length) {
+      console.error("[parsers] No parsers configured");
       return;
     }
 
-    for (const parserDef of repoConfig.parsers) {
+    for (const parserDef of parsers) {
       const plugin = await this.loadParser(parserDef.id);
       if (!plugin) continue;
 

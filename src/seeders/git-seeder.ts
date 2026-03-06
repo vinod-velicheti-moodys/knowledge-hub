@@ -66,7 +66,6 @@ export async function seedFromGit(
   const log = await git.log({
     "--since": since,
     "--no-merges": null as any,
-    "--format": "%H|%an|%aI|%s",
   });
 
   let count = 0;

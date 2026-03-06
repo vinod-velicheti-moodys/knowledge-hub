@@ -1,5 +1,6 @@
 import type { SemanticMemory } from "../memory/semantic.js";
 import type { Config } from "../config.js";
+import type { KnowledgeNamespace } from "../parsers/rules-parser.js";
 
 export interface ResourceDefinition {
   uri: string;
@@ -8,6 +9,12 @@ export interface ResourceDefinition {
   mimeType: string;
 }
 
+const NAMESPACE_URI_SEGMENT: Record<KnowledgeNamespace, string> = {
+  rule: "rules",
+  agent: "agents",
+  skill: "skills",
+};
+
 export function buildResourceList(
   semantic: SemanticMemory,
   config: Config
@@ -15,11 +22,15 @@ export function buildResourceList(
   const prefix = config.projectName;
   const resources: ResourceDefinition[] = [];
 
-  for (const rule of semantic.getAllStandards()) {
+  for (const entry of semantic.getAllStandards()) {
+    const segment = NAMESPACE_URI_SEGMENT[entry.namespace];
+    const titleSlug =
+      entry.namespace === "rule" ? entry.title : entry.title;
+
     resources.push({
-      uri: `${prefix}://rules/${rule.title}`,
-      name: `${rule.title}`,
-      description: rule.description || `Rule: ${rule.title}`,
+      uri: `${prefix}://${segment}/${titleSlug}`,
+      name: entry.title,
+      description: entry.description || `${entry.namespace}: ${entry.title}`,
       mimeType: "text/markdown",
     });
   }
@@ -32,12 +43,18 @@ export function readResource(
   semantic: SemanticMemory,
   config: Config
 ): string | null {
-  const prefix = `${config.projectName}://rules/`;
-  if (!uri.startsWith(prefix)) return null;
+  const prefix = config.projectName;
 
-  const ruleKey = uri.slice(prefix.length);
-  const rule = semantic.getStandard(ruleKey);
-  if (!rule) return null;
+  for (const [ns, segment] of Object.entries(NAMESPACE_URI_SEGMENT)) {
+    const uriPrefix = `${prefix}://${segment}/`;
+    if (!uri.startsWith(uriPrefix)) continue;
 
-  return rule.content;
+    const key = uri.slice(uriPrefix.length);
+    const namespacedKey =
+      ns === "rule" ? key : `${ns}:${key}`;
+    const entry = semantic.getStandard(namespacedKey);
+    if (entry) return entry.content;
+  }
+
+  return null;
 }

@@ -15,6 +15,39 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Recursively extract plain text from Atlassian Document Format (ADF) nodes */
+function extractAdfText(node: any): string {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (node.type === "text") return node.text ?? "";
+  if (Array.isArray(node.content)) {
+    return node.content.map(extractAdfText).join(" ").replace(/\s+/g, " ").trim();
+  }
+  return "";
+}
+
+/** Convert English "N unit ago" phrases to an ISO date string for JQL (e.g. "2024-03-06") */
+function toJiraIsoDate(since: string): string | null {
+  const lower = since.toLowerCase().trim();
+
+  const match = lower.match(/^(\d+)\s*(day|week|month|year)s?\s*(ago)?$/);
+  if (match) {
+    const n = parseInt(match[1], 10);
+    const unit = match[2];
+    const d = new Date();
+    if (unit === "day") d.setDate(d.getDate() - n);
+    else if (unit === "week") d.setDate(d.getDate() - n * 7);
+    else if (unit === "month") d.setMonth(d.getMonth() - n);
+    else if (unit === "year") d.setFullYear(d.getFullYear() - n);
+    return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  }
+
+  // Already an ISO date
+  if (/^\d{4}-\d{2}-\d{2}$/.test(lower)) return lower;
+
+  return null;
+}
+
 function classifyIssueType(issuetype: string): string {
   const lower = issuetype.toLowerCase();
   if (lower.includes("bug")) return "bug_fix";
@@ -32,7 +65,9 @@ export async function seedFromJira(
   const { cloudId, project, delayMs = 200 } = options;
   const since = options.since ?? "6 months ago";
 
-  const defaultJql = `project = ${project} AND status in (Done, Closed) AND updated >= -${since.replace(/\s+/g, "")}`;
+  const isoDate = toJiraIsoDate(since);
+  const updatedFilter = isoDate ? `AND updated >= "${isoDate}"` : "";
+  const defaultJql = `project = ${project} AND statusCategory = Done ${updatedFilter} ORDER BY updated DESC`;
   const jql = options.jql ?? defaultJql;
 
   let count = 0;
@@ -79,7 +114,9 @@ export async function seedFromJira(
       const key = issue.key;
       const fields = issue.fields ?? issue;
       const summary = fields.summary ?? "Unknown";
-      const description = fields.description ?? "";
+      const rawDesc = fields.description;
+      // Atlassian Document Format (ADF) — extract plain text from content nodes
+      const description = extractAdfText(rawDesc).slice(0, 2000);
       const issuetype = fields.issuetype?.name ?? "Task";
       const labels = fields.labels ?? [];
       const components = (fields.components ?? []).map(
@@ -99,7 +136,7 @@ export async function seedFromJira(
         await factual.recordEvent({
           type: eventType,
           summary: `${key}: ${summary}`,
-          details: description.slice(0, 2000),
+          details: description || summary,
           ticketId: key,
           tags: tags.slice(0, 10),
           author: "jira-seed",

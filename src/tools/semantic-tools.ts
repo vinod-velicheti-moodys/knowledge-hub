@@ -14,15 +14,75 @@ function text(value: string): ToolResult {
 export function createSemanticTools(semantic: SemanticMemory, projectRoot: string) {
   return {
     get_standard: async (args: { topic: string }): Promise<ToolResult> => {
+      const results = semantic.searchStandards(args.topic, "rule");
+      if (results.length > 0) {
+        const rule = results[0];
+        return text(
+          `# ${rule.title}\n\n${rule.description ? `> ${rule.description}\n\n` : ""}${rule.content}`
+        );
+      }
+
       const rule = semantic.getStandard(args.topic);
       if (!rule) {
-        const available = semantic.getRuleKeys().join(", ");
+        const available = semantic.getKeysByNamespace("rule").join(", ");
         return text(
-          `No standard found for "${args.topic}". Available: ${available}`
+          `No standard found for "${args.topic}". Available rules: ${available}`
         );
       }
       return text(
         `# ${rule.title}\n\n${rule.description ? `> ${rule.description}\n\n` : ""}${rule.content}`
+      );
+    },
+
+    get_agent: async (args: { name: string }): Promise<ToolResult> => {
+      const key = args.name.startsWith("agent:") ? args.name : `agent:${args.name}`;
+      const entry = semantic.getStandard(key);
+      if (entry) {
+        return text(
+          `# Agent: ${entry.title}\n\n${entry.description ? `> ${entry.description}\n\n` : ""}${entry.content}`
+        );
+      }
+
+      const searchResults = semantic.searchStandards(args.name, "agent");
+      if (searchResults.length > 0) {
+        const best = searchResults[0];
+        return text(
+          `# Agent: ${best.title}\n\n${best.description ? `> ${best.description}\n\n` : ""}${best.content}`
+        );
+      }
+
+      const available = semantic
+        .getKeysByNamespace("agent")
+        .map((k) => k.replace("agent:", ""))
+        .join(", ");
+      return text(
+        `No agent found for "${args.name}". Available agents: ${available}`
+      );
+    },
+
+    get_skill: async (args: { name: string }): Promise<ToolResult> => {
+      const key = args.name.startsWith("skill:") ? args.name : `skill:${args.name}`;
+      const entry = semantic.getStandard(key);
+      if (entry) {
+        return text(
+          `# Skill: ${entry.title}\n\n${entry.description ? `> ${entry.description}\n\n` : ""}${entry.content}`
+        );
+      }
+
+      const searchResults = semantic.searchStandards(args.name, "skill");
+      if (searchResults.length > 0) {
+        const best = searchResults[0];
+        return text(
+          `# Skill: ${best.title}\n\n${best.description ? `> ${best.description}\n\n` : ""}${best.content}`
+        );
+      }
+
+      const available = semantic
+        .getKeysByNamespace("skill")
+        .map((k) => k.replace("skill:", ""))
+        .join(", ");
+      return text(
+        `No skill found for "${args.name}". Available skills: ${available}`
       );
     },
 
@@ -146,7 +206,7 @@ export const SEMANTIC_TOOL_DEFINITIONS = [
   {
     name: "get_standard",
     description:
-      "Get a coding standard or rule by topic. Returns the full rule content for topics like vue, react, ag-grid, radius, tailwind, architecture, etc.",
+      "Get a coding standard or rule by topic. Searches rules only (not agents or skills). Use get_agent() for workflow instructions and get_skill() for component APIs.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -157,6 +217,38 @@ export const SEMANTIC_TOOL_DEFINITIONS = [
         },
       },
       required: ["topic"],
+    },
+  },
+  {
+    name: "get_agent",
+    description:
+      "Get the full workflow instructions for a named agent phase. Call this at the start of each development phase to load the step-by-step workflow.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description:
+            "Agent name (e.g. 'planner', 'architect', 'developer', 'code-reviewer', 'qa', 'shipper', 'lint-fixer', 'pr-creator')",
+        },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "get_skill",
+    description:
+      "Get component API documentation from a skill. Use the group name for a summary (e.g. 'radius-vue2') or group/component for a specific component API (e.g. 'radius-vue2/radiusbutton').",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description:
+            "Skill name or skill/section slug (e.g. 'radius-vue2', 'radius-vue2/radiusbutton', 'radius-react/radiusmodal')",
+        },
+      },
+      required: ["name"],
     },
   },
   {

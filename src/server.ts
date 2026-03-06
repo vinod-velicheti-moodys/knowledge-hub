@@ -49,9 +49,16 @@ import { LongTermMemory } from "./memory/long-term.js";
 
 export async function createServer(): Promise<Server> {
   const registry = new ParserRegistry();
-  await registry.init(config.repoConfig, config.projectRoot);
+  await registry.init(config.parsers, config.projectRoot);
 
-  const semantic = new SemanticMemory(config.rulesDir, registry);
+  const semantic = new SemanticMemory(
+    {
+      rulesDir: config.rulesDir,
+      agentsDir: config.agentsDir,
+      skillsDirs: config.skillsDirs,
+    },
+    registry
+  );
 
   await initDb();
   const pool = getPool();
