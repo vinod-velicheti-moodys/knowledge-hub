@@ -62,7 +62,13 @@ export function createTaskTools(
       what: string;
       why: string;
     }): Promise<ToolResult> => {
-      await shortTerm.addDecision(args.what, args.why);
+      if (!args.what || typeof args.what !== "string" || args.what.trim() === "") {
+        throw new Error("'what' parameter is required and must be a non-empty string");
+      }
+      if (!args.why || typeof args.why !== "string" || args.why.trim() === "") {
+        throw new Error("'why' parameter is required and must be a non-empty string");
+      }
+      await shortTerm.addDecision(args.what.trim(), args.why.trim());
       return text(`Decision recorded: ${args.what}`);
     },
 

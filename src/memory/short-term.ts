@@ -101,9 +101,15 @@ export class ShortTermMemory {
 
   async addDecision(what: string, why: string): Promise<void> {
     const session = await this.requireActive();
+    if (!what || what.trim() === "") {
+      throw new Error("Decision 'what' cannot be empty");
+    }
+    if (!why || why.trim() === "") {
+      throw new Error("Decision 'why' cannot be empty");
+    }
     session.decisions.push({
-      what,
-      why,
+      what: what.trim(),
+      why: why.trim(),
       timestamp: new Date().toISOString(),
     });
     session.lastActivity = new Date().toISOString();
@@ -276,18 +282,43 @@ export class ShortTermMemory {
   }
 
   private rowToSession(row: any): Session {
+    // Parse JSON fields from database
+    const decisions = Array.isArray(row.decisions) 
+      ? row.decisions 
+      : (typeof row.decisions === 'string' ? JSON.parse(row.decisions) : []);
+    
+    const attempts = Array.isArray(row.attempts)
+      ? row.attempts
+      : (typeof row.attempts === 'string' ? JSON.parse(row.attempts) : []);
+    
+    const findings = Array.isArray(row.findings)
+      ? row.findings
+      : (typeof row.findings === 'string' ? JSON.parse(row.findings) : []);
+    
+    const activeFiles = Array.isArray(row.active_files)
+      ? row.active_files
+      : (typeof row.active_files === 'string' ? JSON.parse(row.active_files) : []);
+    
+    const modifiedFiles = Array.isArray(row.modified_files)
+      ? row.modified_files
+      : (typeof row.modified_files === 'string' ? JSON.parse(row.modified_files) : []);
+    
+    const reusabilityMatrix = Array.isArray(row.reusability_matrix)
+      ? row.reusability_matrix
+      : (typeof row.reusability_matrix === 'string' ? JSON.parse(row.reusability_matrix) : []);
+
     return {
       sessionId: row.session_id,
       taskId: row.task_id,
       summary: row.summary,
       ticket: row.ticket_id ? { id: row.ticket_id, summary: "", acceptanceCriteria: [] } : undefined,
       currentPhase: row.current_phase,
-      activeFiles: row.active_files ?? [],
-      modifiedFiles: row.modified_files ?? [],
-      decisions: row.decisions ?? [],
-      attempts: row.attempts ?? [],
-      findings: row.findings ?? [],
-      reusabilityMatrix: row.reusability_matrix ?? [],
+      activeFiles,
+      modifiedFiles,
+      decisions,
+      attempts,
+      findings,
+      reusabilityMatrix,
       developer: row.developer,
       status: row.status,
       startedAt: row.started_at?.toISOString?.() ?? row.started_at,
