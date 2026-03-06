@@ -153,6 +153,13 @@ export class ShortTermMemory {
     await this.flush(session);
   }
 
+  async updateTicket(ticket: { id: string; summary: string; acceptanceCriteria: string[] }): Promise<void> {
+    const session = await this.requireActive();
+    session.ticket = ticket;
+    session.lastActivity = new Date().toISOString();
+    await this.flush(session);
+  }
+
   async endSession(): Promise<Session> {
     const session = await this.requireActive();
     session.status = "completed";
