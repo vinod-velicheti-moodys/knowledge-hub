@@ -21,7 +21,8 @@ async function main() {
   const runGit = args.includes("--git");
   const runManual = args.includes("--manual");
   const runJira = args.includes("--jira");
-  const runAll = !runGit && !runManual && !runJira;
+  // If no seeders specified, default to git only (don't auto-run JIRA)
+  const hasExplicitSeeders = runGit || runManual || runJira;
   const manualFile = args.find((a) => a.endsWith(".yaml") || a.endsWith(".yml") || a.endsWith(".json"));
 
   console.error(`[seed] Project: ${config.projectName} (${config.projectRoot})`);
@@ -34,7 +35,7 @@ async function main() {
 
   let totalEvents = 0;
 
-  if (runGit || runAll) {
+  if (runGit || (!hasExplicitSeeders)) {
     console.error("\n[seed] === Git History Seeder ===");
     const since = args.find((a) => a.startsWith("--since="))?.split("=")[1] ?? "1 year ago";
     const count = await seedFromGit(factual, config.projectRoot, {
@@ -52,7 +53,7 @@ async function main() {
     console.error(`[seed] Manual seeder: ${count} entries`);
   }
 
-  if (runJira || runAll) {
+  if (runJira) {
     console.error("\n[seed] === JIRA Seeder ===");
     const since = args.find((a) => a.startsWith("--since="))?.split("=")[1] ?? "6 months ago";
     const project = args.find((a) => a.startsWith("--project="))?.split("=")[1] ?? "TIM";

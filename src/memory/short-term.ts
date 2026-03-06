@@ -45,6 +45,11 @@ export class ShortTermMemory {
     summary: string,
     ticket?: { id: string; summary: string; acceptanceCriteria: string[] }
   ): Promise<Session> {
+    // Validate taskId is never null/undefined/empty
+    if (!taskId || taskId.trim() === "") {
+      throw new Error("taskId cannot be null or empty. Check that auto-generation worked correctly.");
+    }
+
     const existing = await this.getActiveSession();
     if (existing) {
       throw new Error(
